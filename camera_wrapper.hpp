@@ -48,11 +48,13 @@ public:
   camera_wrapper(std::string serialNumber) {
     cam_ptr = camera_manager::the_manager().get_camera(serialNumber);
     cam_ptr->Init();
+    cam_ptr->PixelFormat.SetValue(PixelFormatEnums::PixelFormat_RGB8);
     node_map = &cam_ptr->GetNodeMap();
   }
   camera_wrapper(int index = 0) {
     cam_ptr = camera_manager::the_manager().get_camera(index);
     cam_ptr->Init();
+    cam_ptr->PixelFormat.SetValue(PixelFormatEnums::PixelFormat_RGB8);
     node_map = &cam_ptr->GetNodeMap();
   }
   ~camera_wrapper() {
