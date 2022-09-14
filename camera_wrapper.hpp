@@ -8,6 +8,7 @@
 #include <sstream>
 #include <chrono>
 #include <sys/stat.h>
+#include <exception>
 
 using namespace Spinnaker;
 using namespace Spinnaker::GenApi;
@@ -15,6 +16,7 @@ using namespace Spinnaker::GenICam;
 
 class camera_manager {
 private:
+  friend class camera_wrapper;
   SystemPtr system;
   CameraList camList;
   camera_manager() {
@@ -34,12 +36,22 @@ public:
     std::cout << camList.GetSize()<< std::endl;
     return camList.GetBySerial(serial_number);
   }
+  CameraPtr get_camera(int index = 0) const {
+    unsigned int numCameras = camList.GetSize();
+    if(numCameras<1) throw std::runtime_error("No FLIR cameras detected!");
+    return camList.GetByIndex(index);
+  }
 };
 
 class camera_wrapper {
 public:
   camera_wrapper(std::string serialNumber) {
     cam_ptr = camera_manager::the_manager().get_camera(serialNumber);
+    cam_ptr->Init();
+    node_map = &cam_ptr->GetNodeMap();
+  }
+  camera_wrapper(int index = 0) {
+    cam_ptr = camera_manager::the_manager().get_camera(index);
     cam_ptr->Init();
     node_map = &cam_ptr->GetNodeMap();
   }
@@ -89,10 +101,6 @@ public:
     cam_ptr->TriggerMode.SetValue(TriggerModeEnums::TriggerMode_On);
   }
   void disable_trigger() {
-    if (cam_ptr->TriggerMode == NULL || cam_ptr->TriggerMode.GetAccessMode() != RW) {
-      std::cout << "Unable to disable trigger mode. Aborting..." << std::endl;
-      exit(-1);
-    }
     cam_ptr->TriggerMode.SetValue(TriggerModeEnums::TriggerMode_Off);
   }
 
@@ -219,16 +227,17 @@ public:
     int width = image_ptr->GetWidth();
     int height = image_ptr->GetHeight();
     cv::Mat result;
+    ImageProcessor ip;
     if (format == "bgr") {
-      ImagePtr converted_image_ptr = image_ptr->Convert(PixelFormat_BGR8);
+      ImagePtr converted_image_ptr = ip.Convert(image_ptr, PixelFormat_BGR8);
       cv::Mat temp_img(height, width, CV_8UC3, converted_image_ptr->GetData());
       result = temp_img.clone();
     } else if (format == "rgb") {
-      ImagePtr converted_image_ptr = image_ptr->Convert(PixelFormat_RGB8);
+      ImagePtr converted_image_ptr = ip.Convert(image_ptr, PixelFormat_RGB8);
       cv::Mat temp_img(height, width, CV_8UC3, converted_image_ptr->GetData());
       result = temp_img.clone();
     } else if (format == "gray") {
-      ImagePtr converted_image_ptr = image_ptr->Convert(PixelFormat_Mono8);
+      ImagePtr converted_image_ptr = ip.Convert(image_ptr, PixelFormat_Mono8);
       cv::Mat temp_img(height, width, CV_8UC1, converted_image_ptr->GetData());
       result = temp_img.clone();
     } else {
