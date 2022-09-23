@@ -4,6 +4,7 @@
 #include <opencv2/opencv.hpp>
 #include <exception>
 #include <iostream>
+#include <memory>
 #include <iomanip>
 #include <sstream>
 #include <chrono>
@@ -45,6 +46,7 @@ public:
 
 class camera_wrapper {
 public:
+  typedef std::shared_ptr<camera_wrapper> Ptr;
   camera_wrapper(std::string serialNumber) {
     cam_ptr = camera_manager::the_manager().get_camera(serialNumber);
     cam_ptr->Init();
