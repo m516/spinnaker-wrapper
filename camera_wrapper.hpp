@@ -60,6 +60,7 @@ public:
     node_map = &cam_ptr->GetNodeMap();
   }
   ~camera_wrapper() {
+    if(started()) end();
     cam_ptr->DeInit();
   }
 
@@ -89,6 +90,9 @@ public:
   }
   void end() {
     cam_ptr->EndAcquisition();
+  }
+  bool started(){
+    return cam_ptr->IsStreaming();
   }
 
   // Setting Hardware/Software Trigger
